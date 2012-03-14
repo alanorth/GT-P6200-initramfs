@@ -1,0 +1,84 @@
+on early-init
+    start ueventd
+
+# create mountpoints
+    mkdir /mnt 0775 root system
+
+on init
+    export PATH /sbin:/vendor/bin
+    export LD_LIBRARY_PATH /vendor/lib:/system/lib
+    export ANDROID_ROOT /system
+    export ANDROID_DATA /data
+    export EXTERNAL_STORAGE /sdcard
+
+    symlink /system/etc /etc
+
+    mkdir /sdcard
+    mkdir /system
+    mkdir /data
+    mkdir /cache
+    mkdir /sbl1
+    mkdir /sbl2
+
+    mount /tmp /tmp tmpfs
+    mkdir /mnt/sdcard 0000 system system 
+
+on early-fs
+    #GOTA update of VIA modem binary
+    insmod /lib/modules/modem_if.ko
+
+on fs
+    mount ext4 /dev/block/mmcblk0p9 /system
+#    mount emmc /dev/block/mmcblk0p2 /sbl1
+#    mount emmc /dev/block/mmcblk0p3 /sbl2
+
+#    mount vfat /dev/block/mmcblk1p1 /sdcard
+	
+on boot
+
+    ifup lo
+    hostname localhost
+    domainname localdomain
+
+    class_start default
+
+service ueventd /sbin/ueventd
+    critical
+
+
+service console_eng /sbin/busybox sh
+    class core
+    console
+    disabled
+    group log
+
+service console_user /sbin/busybox sh
+    class core
+    console
+    disabled
+    group shell log
+    user shell
+    
+on property:ro.debuggable=1
+start console_eng
+
+on property:ro.debuggable=0
+    start console_user
+    
+#service console /system/bin/busybox ash
+#    console
+
+service console /sbin/busybox sh
+    console
+
+service recovery /sbin/recovery
+
+service adbd /sbin/adbd recovery
+#    disabled
+
+#on property:persist.service.adb.enable=1
+#    start adbd
+
+#on property:persist.service.adb.enable=0
+#    stop adbd
+
